@@ -1034,6 +1034,10 @@ VERIFY_STUDENT = {
     "DAYS_GOOD_FOR": 365,  # How many days is a verficiation good for?
 }
 
+########################## CLASS DASHBOARD ########################
+INSTALLED_APPS += ('class_dashboard',)
+MITX_FEATURES['CLASS_DASHBOARD'] = False
+
 ######################## CAS authentication ###########################
 
 if MITX_FEATURES.get('AUTH_USE_CAS'):
