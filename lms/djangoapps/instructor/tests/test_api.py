@@ -35,7 +35,6 @@ import instructor.views.api
 from instructor.views.api import _split_input_list, _msk_from_problem_urlname, common_exceptions_400
 from instructor_task.api_helper import AlreadyRunningError
 
-
 @common_exceptions_400
 def view_success(request):  # pylint: disable=W0613
     "A dummy view for testing that returns a simple HTTP response"
@@ -745,6 +744,19 @@ class TestInstructorAPILevelsAccess(ModuleStoreTestCase, LoginEnrollmentTestCase
         res_json = json.loads(response.content)
         self.assertEqual(res_json, expected)
 
+class MockCourseDataService(object):
+    """
+    Mock a course data service.
+    """
+    def __init__(self, success):
+        self.success = success
+
+    def get_course_data(self, _course_id):
+        """
+        Mock the response from ORA when getting course data.
+        """
+        return {'success': self.success, 'file_url': "www.test.com"}
+
 
 @override_settings(MODULESTORE=TEST_DATA_MIXED_MODULESTORE)
 class TestInstructorAPILevelsDataDump(ModuleStoreTestCase, LoginEnrollmentTestCase):
@@ -789,6 +801,18 @@ class TestInstructorAPILevelsDataDump(ModuleStoreTestCase, LoginEnrollmentTestCa
         body = response.content.replace('\r', '')
         self.assertTrue(body.startswith('"User ID","Anonymized user ID"\n"2","42"\n'))
         self.assertTrue(body.endswith('"7","42"\n'))
+
+    @patch('instructor.views.api.CourseDataService', Mock(return_value=MockCourseDataService(success=True)))
+    def test_get_oe_data_success(self):
+        """
+        Test that we can get open ended data dump links properly.
+        """
+        url = reverse('get_open_ended_data', kwargs={'course_id': self.course.id})
+        response = self.client.get(url)
+        content = json.loads(response.content)
+        self.assertIn('success', content)
+        self.assertTrue(content['success'])
+        self.assertIn('file_url', content)
 
     def test_get_students_features_csv(self):
         """
