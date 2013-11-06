@@ -45,17 +45,15 @@
 
     <div class="tc-wrapper">
       <a href="#transcript-captions" class="sr">Skip to clickable transcript video links.</a>
-      
-      <article class="video-wrapper">
-          <div class="video-player-pre"></div>
 
+      <article class="video-wrapper">
+          <span tabindex="0" class="spinner" aria-hidden="false" aria-label="${_('Loading video player')}"></span>
+          <div class="video-player-pre"></div>
           <section class="video-player">
               <div id="${id}"></div>
               <h3 class="hidden">${_('ERROR: No playable video sources found!')}</h3>
           </section>
-
           <div class="video-player-post"></div>
-
           <section class="video-controls">
               <div class="slider" title="Video position"></div>
 
