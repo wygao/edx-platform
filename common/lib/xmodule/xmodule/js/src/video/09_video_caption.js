@@ -105,8 +105,9 @@ function () {
         this.videoCaption.subtitlesEl = this.el.find('ol.subtitles');
         this.videoCaption.hideSubtitlesEl = this.el.find('a.hide-subtitles');
 
-        if (!this.videoCaption.fetchCaption()) {
-            this.videoCaption.hideCaptions(true);
+        if (this.videoCaption.fetchCaption()) {
+            this.videoCaption.hideCaptions(false);
+        } else {
             this.videoCaption.hideSubtitlesEl.hide();
         }
     }

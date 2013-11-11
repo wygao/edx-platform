@@ -93,6 +93,7 @@ def video_is_rendered(_step, mode):
         'youtube': 'iframe'
     }
     html_tag = modes[mode.lower()]
+    world.wait_for_visible('section.video-controls')
     assert world.css_find('.video {0}'.format(html_tag)).first
 
 

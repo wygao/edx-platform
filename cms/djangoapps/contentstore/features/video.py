@@ -22,6 +22,8 @@ def i_created_a_video_component(step):
         step=step,
         category='video',
     )
+    world.wait_for_xmodule()
+    world.wait_for_visible('section.video-controls')
 
 
 @step('I have created a Video component with subtitles$')
@@ -42,6 +44,7 @@ def i_created_a_video_with_subs_with_name(_step, sub_id):
     # Return to the video
     world.visit(video_url)
     world.wait_for_xmodule()
+    world.wait_for_visible('section.video-controls')
 
 
 @step('I have uploaded subtitles "([^"]*)"$')
@@ -168,7 +171,7 @@ def focus_on_caption_line(_step, index):
 
 
 @step('I press "enter" button on caption line with data-index (\d+)$')
-def focus_on_caption_line(_step, index):
+def click_on_the_caption(_step, index):
     find_caption_line_by_data_index(int(index.strip()))._element.send_keys(Keys.ENTER)
 
 

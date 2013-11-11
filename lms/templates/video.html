@@ -6,7 +6,7 @@
 
 <div
     id="video_${id}"
-    class="video"
+    class="video closed"
 
     data-streams="${youtube_streams}"
 
@@ -45,7 +45,7 @@
 
     <div class="tc-wrapper">
       <a href="#transcript-captions" class="sr">Skip to clickable transcript video links.</a>
-      
+
       <article class="video-wrapper">
           <div class="video-player-pre"></div>
 
@@ -87,6 +87,7 @@
           </section>
       </article>
 
+      ## Why do we have an empty <li> inside?
       <ol id="transcript-captions" class="subtitles" tabindex="0" title="${_('Captions')}" role="group" aria-label="${_('Activating an item in this group will spool the video to the corresponding time point')}"><li></li></ol>
     </div>
 

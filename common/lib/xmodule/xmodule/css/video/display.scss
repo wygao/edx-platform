@@ -15,6 +15,13 @@ div.video {
     border: 0;
   }
 
+  &.is-initialized {
+      section.video-controls {
+        opacity: 1;
+      }
+    }
+  }
+
   div.tc-wrapper {
     position: relative;
     @include clearfix;
@@ -106,6 +113,7 @@ div.video {
       border-top: 0;
       color: #ccc;
       position: relative;
+      opacity: 0;
 
       &:hover {
         ul, div {
