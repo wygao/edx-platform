@@ -907,6 +907,7 @@ class CapaModule(CapaFields, XModule):
         event_info['problem_id'] = self.location.url()
 
         answers = self.make_dict_of_responses(data)
+        # hack ipdb - temp line
         event_info['answers'] = convert_files_to_filenames(answers)
 
         # Too late. Cannot submit
@@ -982,6 +983,7 @@ class CapaModule(CapaFields, XModule):
         event_info['correct_map'] = correct_map.get_dict()
         event_info['success'] = success
         event_info['attempts'] = self.attempts
+        # ipdb hack line temp
         self.system.track_function('problem_check', event_info)
 
         if hasattr(self.system, 'psychometrics_handler'):  # update PsychometricsData using callback
