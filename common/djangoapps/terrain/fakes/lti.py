@@ -1,4 +1,8 @@
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+"""
+Fake implementation of an LTI service for acceptance tests.
+"""
+
+from .http import FakeHttpRequestHandler, FakeHttpService
 import urlparse
 from oauthlib.oauth1.rfc5849 import signature
 import mock
@@ -7,29 +11,18 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class MockLTIRequestHandler(BaseHTTPRequestHandler):
-    '''
+class FakeLTIHandler(FakeHttpRequestHandler):
+    """
     A handler for LTI POST requests.
-    '''
-
-    protocol = "HTTP/1.0"
-
-    def log_message(self, format, *args):
-        """Log an arbitrary message."""
-        # Code copied from BaseHTTPServer.py. Changed to write to sys.stdout
-        # so that messages won't pollute test output.
-        sys.stdout.write("%s - - [%s] %s\n" %
-                         (self.client_address[0],
-                          self.log_date_time_string(),
-                          format % args))
+    """
 
     def do_HEAD(self):
         self._send_head()
 
     def do_POST(self):
-        '''
+        """
         Handle a POST request from the client and sends response back.
-        '''
+        """
         self._send_head()
 
         post_dict = self._post_dict()  # Retrieve the POST data
@@ -72,9 +65,9 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         self._send_response(status_message)
 
     def _send_head(self):
-        '''
+        """
         Send the response code and MIME headers
-        '''
+        """
         if self._is_correct_lti_request():
             self.send_response(200)
         else:
@@ -84,9 +77,9 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _post_dict(self):
-        '''
+        """
         Retrieve the POST parameters from the client as a dictionary
-        '''
+        """
         try:
             length = int(self.headers.getheader('content-length'))
             post_dict = urlparse.parse_qs(self.rfile.read(length), keep_blank_values=True)
@@ -103,9 +96,9 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         return post_dict
 
     def _send_response(self, message):
-        '''
+        """
         Send message back to the client
-        '''
+        """
         response_str = """<html><head><title>TEST TITLE</title></head>
         <body>
         <div><h2>IFrame loaded</h2> \
@@ -119,36 +112,19 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(response_str)
 
     def _is_correct_lti_request(self):
-        '''If url to LTI tool is correct.'''
+        """If url to LTI tool is correct."""
         return self.server.oauth_settings['lti_endpoint'] in self.path
 
 
-class MockLTIServer(HTTPServer):
-    '''
-    A mock LTI provider server that responds
-    to POST requests to localhost.
-    '''
+class FakeLTIService(FakeHttpService):
+    """
+    A fake LTI provider server that responds to POST requests to localhost.
+    """
 
-    def __init__(self, address):
-        '''
-        Initialize the mock XQueue server instance.
-
-        *address* is the (host, host's port to listen to) tuple.
-        '''
-        handler = MockLTIRequestHandler
-        HTTPServer.__init__(self, address, handler)
-
-    def shutdown(self):
-        '''
-        Stop the server and free up the port
-        '''
-        # First call superclass shutdown()
-        HTTPServer.shutdown(self)
-        # We also need to manually close the socket
-        self.socket.close()
+    HANDLER_CLASS = FakeLTIHandler
 
     def check_oauth_signature(self, params, client_signature):
-        '''
+        """
         Checks oauth signature from client.
 
         `params` are params from post request except signature,
@@ -162,7 +138,7 @@ class MockLTIServer(HTTPServer):
 
         Returns `True` if signatures are correct, otherwise `False`.
 
-        '''
+        """
         client_secret = unicode(self.oauth_settings['client_secret'])
         url = self.oauth_settings['lti_base'] + self.oauth_settings['lti_endpoint']
 
@@ -174,4 +150,3 @@ class MockLTIServer(HTTPServer):
         request.signature = unicode(client_signature)
 
         return signature.verify_hmac_sha1(request, client_secret)
-
