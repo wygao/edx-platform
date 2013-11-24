@@ -116,20 +116,11 @@ except ImportError:
 
 # Because an override for where to run will affect which ports to use,
 # set this up after the local overrides.
-if LETTUCE_SELENIUM_CLIENT == 'saucelabs':
-    LETTUCE_SERVER_PORT = choice(PORTS)
-else:
-    LETTUCE_SERVER_PORT = randint(1024, 65535)
+LETTUCE_SERVER_PORT = choice(PORTS)
 
-
-# Set up Video information so that the cms will send
-# requests to a mock Youtube server running locally
-if LETTUCE_SELENIUM_CLIENT == 'saucelabs':
-    VIDEO_PORT = choice(PORTS)
-    PORTS.remove(VIDEO_PORT)
-else:
-    VIDEO_PORT = randint(1024, 65535)
-
-# for testing Youtube
-YOUTUBE_API['url'] = "http://127.0.0.1:" + str(VIDEO_PORT) + '/test_transcripts_youtube/'
-
+# Set up video end-point so that the lms will send
+# requests to a fake Youtube server running locally
+VIDEO_PORT = choice(PORTS)
+PORTS.remove(VIDEO_PORT)
+YOUTUBE_TEST_URL = "http://127.0.0.1:{0}/test_youtube/".format(VIDEO_PORT)
+YOUTUBE_API['url'] = "http://127.0.0.1:{0}/test_transcripts_youtube/".format(VIDEO_PORT)

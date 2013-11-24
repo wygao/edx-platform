@@ -4,14 +4,8 @@ Fake implementation of YouTube for acceptance tests.
 
 from .http import FakeHttpRequestHandler, FakeHttpService
 import json
-import mock
-import sys
-import threading
 import time
-import urlparse
-
-from logging import getLogger
-logger = getLogger(__name__)
+import requests
 
 
 class FakeYouTubeHandler(FakeHttpRequestHandler):
@@ -19,18 +13,12 @@ class FakeYouTubeHandler(FakeHttpRequestHandler):
     A handler for Youtube GET requests.
     """
 
-    def do_HEAD(self):
-        code = 200
-        if 'test_transcripts_youtube' in self.path:
-            if not 'trans_exist' in self.path:
-                code = 404
-        self._send_head(code)
-
     def do_GET(self):
         """
         Handle a GET request from the client and sends response back.
         """
-        logger.debug(
+
+        self.log_message(
             "Youtube provider received GET request to path {}".format(self.path)
         )
 
@@ -42,8 +30,10 @@ class FakeYouTubeHandler(FakeHttpRequestHandler):
                     '<transcript><text start="1.0" dur="1.0">',
                     'Equal transcripts</text></transcript>'
                 ])
-                self._send_head()
-                self._send_transcripts_response(status_message)
+
+                self.send_response(
+                    200, content=status_message, headers={'Content-type': 'application/xml'}
+                )
 
             elif 't_neq_exist' in self.path:
                 status_message = "".join([
@@ -52,58 +42,36 @@ class FakeYouTubeHandler(FakeHttpRequestHandler):
                     'Transcripts sample, different that on server',
                     '</text></transcript>'
                 ])
-                self._send_head()
-                self._send_transcripts_response(status_message)
+
+                self.send_response(
+                    200, content=status_message, headers={'Content-type': 'application/xml'}
+                )
 
             else:
-                self._send_head(404)
+                self.send_response(404)
 
         elif 'test_youtube' in self.path:
-            self._send_head()
-            #testing videoplayers
-            status_message = "I'm youtube."
-            response_timeout = float(self.server.time_to_response)
-
-            # threading timer produces TypeError: 'NoneType' object is not callable here
-            # so we use time.sleep, as we already in separate thread.
-            time.sleep(response_timeout)
-            self._send_video_response(status_message)
+            self._send_video_response("I'm youtube.")
 
         else:
-            # unused url
-            self._send_head()
-            self._send_transcripts_response('Unused url')
-            logger.debug("Request to unused url.")
-
-    def _send_head(self, code=200):
-        """
-        Send the response code and MIME headers
-        """
-        self.send_response(code)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-
-    def _send_transcripts_response(self, message):
-        """
-        Send message back to the client for transcripts ajax requests.
-        """
-        response = message
-        # Log the response
-        logger.debug("Youtube: sent response {}".format(message))
-
-        self.wfile.write(response)
+            self.send_response(
+                404, content="Unused url", headers={'Content-type': 'text/plain'}
+            )
 
     def _send_video_response(self, message):
         """
         Send message back to the client for video player requests.
         Requires sending back callback id.
         """
-        callback = urlparse.parse_qs(self.path)['callback'][0]
-        response = callback + '({})'.format(json.dumps({'message': message}))
-        # Log the response
-        logger.debug("Youtube: sent response {}".format(message))
+        # Delay the response to simulate network latency
+        time.sleep(self.server.time_to_response)
 
-        self.wfile.write(response)
+        # Construct the response content
+        callback = self.get_params['callback'][0]
+        response = callback + '({})'.format(json.dumps({'message': message}))
+        self.log_message("Youtube: sent response {}".format(message))
+
+        self.send_response(200, content=response, headers={'Content-type': 'text/html'})
 
 
 class FakeYouTubeService(FakeHttpService):
@@ -112,3 +80,17 @@ class FakeYouTubeService(FakeHttpService):
     to GET requests to localhost.
     """
     HANDLER_CLASS = FakeYouTubeHandler
+
+    DEFAULT_DELAY_SEC = 0.5
+
+    def __init__(self, *args, **kwargs):
+        super(FakeYouTubeService, self).__init__(*args, **kwargs)
+        self._time_to_response = self.DEFAULT_DELAY_SEC
+
+    @property
+    def time_to_response(self):
+        return self._time_to_response
+
+    @time_to_response.setter
+    def time_to_response(self, value):
+        self._time_to_response = float(value)

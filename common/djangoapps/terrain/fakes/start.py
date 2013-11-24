@@ -14,28 +14,25 @@ from .xqueue import FakeXQueueService
 
 
 @before.all
-def setup_fake_services():
+def start_fake_services():
     """
     Start all fake services running on localhost.
     """
 
     # Set up LTI
-    world.lti_server = FakeLTIService()
-    world.lti_server.start()
-    world.lti_server.oauth_settings = {
-        'client_key': 'test_client_key',
-        'client_secret': 'test_client_secret',
-        'lti_base':  'http://{}:{}/'.format('127.0.0.1', world.lti_server.port),
-        'lti_endpoint': 'correct_lti_endpoint'
-    }
+    world.lti_server = FakeLTIService(
+        'test_client_key', 'test_client_secret', 'correct_lti_endpoint'
+    )
 
     # Set up YouTube
-    world.youtube_server = FakeYouTubeService(port_num=settings.VIDEO_PORT)
-    world.youtube_server.start()
+    world.youtube_server = FakeYouTubeService(
+        port_num=getattr(settings, 'VIDEO_PORT', 0)
+    )
 
     # Set up XQueue
-    world.xqueue_server = FakeXQueueService(port_num=settings.XQUEUE_PORT)
-    world.xqueue_server.start()
+    world.xqueue_server = FakeXQueueService(
+        port_num=getattr(settings, 'XQUEUE_PORT', 0)
+    )
 
 
 @after.all

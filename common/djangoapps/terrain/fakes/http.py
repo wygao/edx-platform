@@ -3,13 +3,12 @@ Fake implementation of an HTTP service.
 """
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-import json
-import urllib
 import urlparse
 import threading
+from lazy import lazy
 
 from logging import getLogger
-logger = getLogger(__name__)
+LOGGER = getLogger(__name__)
 
 
 class FakeHttpRequestHandler(BaseHTTPRequestHandler, object):
@@ -26,11 +25,68 @@ class FakeHttpRequestHandler(BaseHTTPRequestHandler, object):
 
         msg = "{0} - - [{1}] {2}\n".format(
             self.client_address[0],
-            self.log_date_time_String(),
+            self.log_date_time_string(),
             format_str % args
         )
 
-        sys.stdout.write(msg)
+        LOGGER.debug(msg)
+
+    @lazy
+    def request_content(self):
+        """
+        Retrieve the content of the request.
+        """
+        try:
+            length = int(self.headers.getheader('content-length'))
+
+        except (TypeError, ValueError):
+            return ""
+        else:
+            return self.rfile.read(length)
+
+    @lazy
+    def post_dict(self):
+        """
+        Retrieve the request POST parameters from the client as a dictionary.
+        If no POST parameters can be interpreted, return an empty dict.
+        """
+        contents = self.request_content
+
+        # The POST dict will contain a list of values for each key.
+        # None of our parameters are lists, however, so we map [val] --> val
+        # If the list contains multiple entries, we pick the first one
+        try:
+            post_dict = urlparse.parse_qs(contents, keep_blank_values=True)
+            return {
+                key: list_val[0]
+                for key, list_val in post_dict.items()
+            }
+
+        except:
+            return dict()
+
+    @lazy
+    def get_params(self):
+        """
+        Return the GET parameters (querystring in the URL).
+        """
+        return urlparse.parse_qs(self.path)
+
+    def send_response(self, status_code, content=None, headers=None):
+
+        if headers is None:
+            headers = dict()
+
+        BaseHTTPRequestHandler.send_response(self, status_code)
+
+        for (key, value) in headers.items():
+            self.send_header(key, value)
+
+        if len(headers) > 0:
+            self.end_headers()
+
+        if content is not None:
+            self.wfile.write(content)
 
 
 class FakeHttpService(HTTPServer, object):
@@ -50,13 +106,13 @@ class FakeHttpService(HTTPServer, object):
         address = ('127.0.0.1', port_num)
         HTTPServer.__init__(self, address, self.HANDLER_CLASS)
 
-    def start(self):
-        """
-        Start the server listening on a local port.
-        """
+        # Start the server in a separate thread
         server_thread = threading.Thread(target=self.serve_forever)
         server_thread.daemon = True
         server_thread.start()
+
+        # Log the port we're using to help identify port conflict errors
+        LOGGER.debug('Starting service on port {0}'.format(self.port))
 
     def shutdown(self):
         """

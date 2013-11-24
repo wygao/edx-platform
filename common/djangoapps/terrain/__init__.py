@@ -4,4 +4,4 @@
 from terrain.browser import *
 from terrain.steps import *
 from terrain.factories import *
-from terrain.fakes import setup
+from terrain.fakes import start

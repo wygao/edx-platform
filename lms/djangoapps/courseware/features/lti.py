@@ -68,8 +68,8 @@ def set_correct_lti_passport(_step):
     coursenum = 'test_course'
     metadata = {
         'lti_passports': ["correct_lti_id:{}:{}".format(
-            world.lti_server.oauth_settings['client_key'],
-            world.lti_server.oauth_settings['client_secret']
+            world.lti_server.client_key,
+            world.lti_server.client_secret
         )]
     }
     i_am_registered_for_the_course(coursenum, metadata)
@@ -80,7 +80,7 @@ def set_incorrect_lti_passport(_step):
     coursenum = 'test_course'
     metadata = {
         'lti_passports': ["test_lti_id:{}:{}".format(
-            world.lti_server.oauth_settings['client_key'],
+            world.lti_server.client_key,
             "incorrect_lti_secret_key"
         )]
     }
@@ -91,7 +91,7 @@ def set_incorrect_lti_passport(_step):
 def add_correct_lti_to_course(_step, fields, new_page):
     category = 'lti'
     lti_id = 'correct_lti_id'
-    launch_url = world.lti_server.oauth_settings['lti_base'] + world.lti_server.oauth_settings['lti_endpoint']
+    launch_url = world.lti_server.lti_base + world.lti_server.lti_endpoint
     if fields.strip() == 'incorrect_lti_id':  # incorrect fields
         lti_id = 'incorrect_lti_id'
     elif fields.strip() == 'correct':  # correct fields
