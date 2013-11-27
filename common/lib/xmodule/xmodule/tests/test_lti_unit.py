@@ -2,14 +2,21 @@
 """Test for LTI Xmodule functional logic."""
 
 from mock import Mock, patch, PropertyMock
+import mock
 import textwrap
 import json
 from lxml import etree
+import json
 from webob.request import Request
 from copy import copy
+from collections import OrderedDict
 import urllib
+import oauthlib
+import hashlib
+import base64
 
-from xmodule.lti_module import LTIDescriptor
+
+from xmodule.lti_module import LTIDescriptor, LTIError
 
 from . import LogicTest
 
@@ -48,7 +55,6 @@ class LTIModuleTest(LogicTest):
                 </imsx_POXEnvelopeRequest>
             """)
         self.system.get_real_user = Mock()
-        self.xmodule.get_client_key_secret = Mock(return_value=('key', 'secret'))
         self.system.publish = Mock()
 
         self.user_id = self.xmodule.runtime.anonymous_student_id
@@ -221,7 +227,7 @@ class LTIModuleTest(LogicTest):
         self.assertEqual(real_user_id, expected_user_id)
 
     def test_outcome_service_url(self):
-        expected_outcome_service_url = 'http://{host}{path}'.format(
+        expected_outcome_service_url = 'https://{host}{path}'.format(
                 host=self.xmodule.runtime.hostname,
                 path=self.xmodule.runtime.handler_url(self.xmodule, 'grade_handler', thirdparty=True).rstrip('/?')
             )
@@ -245,11 +251,153 @@ class LTIModuleTest(LogicTest):
             self.assertEqual(real_lis_result_sourcedid, expected_sourcedId)
 
 
-    def test_verify_oauth_body_sign(self):
-        pass
+    @patch('xmodule.course_module.CourseDescriptor.id_to_location')
+    def test_client_key_secret(self, test):
+        """
+        LTI module gets client key and secret provided.
+        """
 
-    def test_client_key_secret(self):
-        pass
+        #this adds lti passports to system
+        mocked_course = Mock(lti_passports = ['lti_id:test_client:test_secret'])
+        modulestore = Mock()
+        modulestore.get_item.return_value = mocked_course
+        runtime = Mock(modulestore=modulestore)
+        self.xmodule.descriptor.runtime = runtime
+        self.xmodule.lti_id = "lti_id"
+        key, secret = self.xmodule.get_client_key_secret()
+        expected = ('test_client', 'test_secret')
+        self.assertEqual(expected, (key, secret))
+
+    @patch('xmodule.course_module.CourseDescriptor.id_to_location')
+    def test_client_key_secret_not_provided(self, test):
+        """
+        LTI module attempts to get client key and secret provided in cms.
+        There are key and secret but not for specific LTI.
+        """
+
+        #this adds lti passports to system
+        mocked_course = Mock(lti_passports = ['test_id:test_client:test_secret'])
+        modulestore = Mock()
+        modulestore.get_item.return_value = mocked_course
+        runtime = Mock(modulestore=modulestore)
+        self.xmodule.descriptor.runtime = runtime
+        #set another lti_id
+        self.xmodule.lti_id = "another_lti_id"
+        key_secret = self.xmodule.get_client_key_secret()
+        expected = ('','')
+        self.assertEqual(expected, key_secret)
+
+    @patch('xmodule.course_module.CourseDescriptor.id_to_location')
+    def test_bad_client_key_secret(self, test):
+        """
+        LTI module attempts to get client key and secret provided in cms.
+        There are key and secret provided in wrong format.
+        """
+        #this adds lti passports to system
+        #provide key and secret in wrong format
+        mocked_course = Mock(lti_passports = ['test_id_test_client_test_secret'])
+        modulestore = Mock()
+        modulestore.get_item.return_value = mocked_course
+        runtime = Mock(modulestore=modulestore)
+        self.xmodule.descriptor.runtime = runtime
+        self.xmodule.lti_id = 'lti_id'
+        with self.assertRaises(LTIError):
+            self.xmodule.get_client_key_secret()
+
+    @patch('xmodule.lti_module.signature.verify_hmac_sha1')
+    @patch('xmodule.lti_module.LTIModule.get_client_key_secret', return_value=('test_client_key', u'test_client_secret'))
+    def test_successful_verify_oauth_body_sign(self, get_key_secret, mocked_verify):
+        """
+        Successful oauth signing verify.
+        """
+        mocked_verify.return_value = True
+        try:
+            self.xmodule.verify_oauth_body_sign(self.get_signed_mock_request())
+        except LTIError:
+            self.fail("verify_oauth_body_sign() raised LTIError unexpectedly!")
+
+    @patch('xmodule.lti_module.signature.verify_hmac_sha1')
+    @patch('xmodule.lti_module.LTIModule.get_client_key_secret', return_value=('test_client_key', u'test_client_secret'))
+    def test_failed_verify_oauth_body_sign(self, get_key_secret, mocked_verify):
+        """
+        Oauth signing verify fail.
+        """
+        mocked_verify.return_value = False
+        with self.assertRaises(LTIError):
+            req = self.get_signed_mock_request()
+            self.xmodule.verify_oauth_body_sign(req)
+
+    def get_signed_mock_request(self):
+        """
+        Example of signed request from LTI Provider.
+        """
+        mock_request = Mock()
+        mock_request.headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/xml',
+            'Authorization': u'OAuth oauth_nonce="135685044251684026041377608307", \
+                oauth_timestamp="1234567890", oauth_version="1.0", \
+                oauth_signature_method="HMAC-SHA1", \
+                oauth_consumer_key="test_client_key", \
+                oauth_signature="my_signature%3D", \
+                oauth_body_hash="ODMzZjhmNzg5NjZlMTc2ZmZmOWZkODRkNTI3MGUzZGFmZTY0MzdiZA=="'
+        }
+        mock_request.url = u'http://testurl'
+        mock_request.http_method = u'POST'
+        mock_request.body = textwrap.dedent("""
+            <?xml version = "1.0" encoding = "UTF-8"?>
+                <imsx_POXEnvelopeRequest  xmlns="http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0">
+                </imsx_POXEnvelopeRequest>
+        """)
+        return mock_request
+
+    def test_good_custom_params(self):
+        """
+        Custom parameters are present in right format.
+        """
+        self.xmodule.custom_parameters = ['test_custom_params=test_custom_param_value']
+        self.xmodule.get_client_key_secret = Mock(return_value=('test_client_key', 'test_client_secret'))
+        self.xmodule.oauth_params = Mock()
+        self.xmodule.get_input_fields()
+        self.xmodule.oauth_params.assert_called_with(
+            {u'custom_test_custom_params': u'test_custom_param_value'},
+            'test_client_key', 'test_client_secret'
+        )
+
+    def test_bad_custom_params(self):
+        """
+        Custom parameters are present in wrong format.
+        """
+        bad_custom_params = ['test_custom_params: test_custom_param_value']
+        self.xmodule.custom_parameters = bad_custom_params
+        self.xmodule.get_client_key_secret = Mock(return_value=('test_client_key', 'test_client_secret'))
+        self.xmodule.oauth_params = Mock()
+        self.assertRaises(
+            LTIError,
+            self.xmodule.get_input_fields,
+        )
+
+    def test_handle_ajax(self):
+        dispatch = 'regenerate_signature'
+        data = ''
+        self.xmodule.get_input_fields = Mock(return_value={'test_input_field_key': 'test_input_field_value'})
+        json_dump = self.xmodule.handle_ajax(dispatch, data)
+        expected_json_dump = '{"input_fields": {"test_input_field_key": "test_input_field_value"}}'
+        self.assertEqual(
+            json.loads(json_dump),
+            json.loads(expected_json_dump)
+        )
+
+    def test_handle_ajax_bad_dispatch(self):
+        dispatch = 'bad_dispatch'
+        data = ''
+        self.xmodule.get_input_fields = Mock(return_value={'test_input_field_key': 'test_input_field_value'})
+        json_dump = self.xmodule.handle_ajax(dispatch, data)
+        expected_json_dump = '{"error": "[handle_ajax]: Unknown Command!"}'
+        self.assertEqual(
+            json.loads(json_dump),
+            json.loads(expected_json_dump)
+        )
 
     def test_handle_ajax(self):
         dispatch = 'regenerate_signature'

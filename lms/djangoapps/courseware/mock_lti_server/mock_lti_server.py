@@ -1,3 +1,12 @@
+"""
+LTI Server
+
+What is supported:
+------------------
+
+1.) One Tool Consumer at the same time
+
+"""
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from uuid import uuid4
 import textwrap
@@ -23,6 +32,7 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
     protocol = "HTTP/1.0"
     callback_url = None
 
+
     def log_message(self, format, *args):
         """Log an arbitrary message."""
         # Code copied from BaseHTTPServer.py. Changed to write to sys.stdout
@@ -42,11 +52,9 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         response_str = """<html><head><title>TEST TITLE</title></head>
-            <body>I have stored grades.</body></html>"""
+            <body>This is LTI Provider.</body></html>"""
 
         self.wfile.write(response_str)
-
-        self._send_graded_result()
 
 
 
@@ -54,14 +62,6 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         '''
         Handle a POST request from the client and sends response back.
         '''
-
-        '''
-        logger.debug("LTI provider received POST request {} to path {}".format(
-            str(self.post_dict),
-            self.path)
-        )  # Log the request
-        '''
-        # Respond to grade request
         if 'grade' in self.path and self._send_graded_result().status_code == 200:
             status_message = 'LTI consumer (edX) responded with XML content:<br>' + self.server.grade_data['TC answer']
             self.server.grade_data['callback_url'] = None
@@ -97,8 +97,8 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
             # set data for grades
             # what need to be stored as server data
             self.server.grade_data = {
-                'callback_url': self.post_dict["lis_outcome_service_url"],
-                'sourcedId': self.post_dict['lis_result_sourcedid']
+                'callback_url': self.post_dict.get('lis_outcome_service_url'),
+                'sourcedId': self.post_dict.get('lis_result_sourcedid')
             }
         else:
             status_message = "Invalid request URL"
@@ -111,12 +111,6 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         Send the response code and MIME headers
         '''
         self.send_response(200)
-        '''
-        if self._is_correct_lti_request():
-            self.send_response(200)
-        else:
-            self.send_response(500)
-        '''
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
@@ -184,12 +178,18 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         data = payload.format(**values)
         # temporarily changed to get for easy view in browser
         # get relative part, because host name is different in a) manual tests b) acceptance tests c) demos
-        relative_url = urlparse.urlparse(self.server.grade_data['callback_url']).path
-        url = self.server.referer_host + relative_url
+        if getattr(self.server, 'test_mode', None):
+            relative_url = urlparse.urlparse(self.server.grade_data['callback_url']).path
+            url = self.server.referer_host + relative_url
+        else:
+            url = self.server.grade_data['callback_url']
 
         headers = {'Content-Type': 'application/xml', 'X-Requested-With': 'XMLHttpRequest'}
-
         headers['Authorization'] = self.oauth_sign(url, data)
+
+        if getattr(self.server, 'run_inside_unittest_flag', None):
+            response = mock.Mock(status_code=200, url=url, data=data, headers=headers)
+            return response
 
         response = requests.post(
             url,

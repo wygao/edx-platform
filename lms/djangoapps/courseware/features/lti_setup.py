@@ -38,6 +38,9 @@ def setup_mock_lti_server():
         'lti_endpoint': 'correct_lti_endpoint'
     }
 
+    #flag for acceptance tests used for creating right callback_url
+    server.test_mode = True
+
     # Store the server instance in lettuce's world
     # so that other steps can access it
     # (and we can shut it down later)

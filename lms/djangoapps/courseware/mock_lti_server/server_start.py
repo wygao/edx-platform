@@ -18,6 +18,9 @@ server.oauth_settings = {
 }
 server.server_host = server_host
 
+#flag for acceptance tests used for creating right callback_url
+server.test_mode = True
+
 try:
     server.serve_forever()
 except KeyboardInterrupt:
