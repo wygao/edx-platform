@@ -226,6 +226,8 @@ class LoncapaResponse(object):
         for choice in choices:
             choice.set('index', str(index))  # for future de-shuffle
             index += 1
+            if (choice.get('name')):
+                choice.set('custom_name', '1')
             if at_head and choice.get('fixed') == 'true':
                 head.append(choice)
                 continue
@@ -272,8 +274,11 @@ class LoncapaResponse(object):
         choices = list(choicegroups[0].getchildren())
         for choice in choices:
             if choice.get('name') == name:
-                index = choice.get('index')
-                result = choices[int(index)].get('name')
+                if (hasattr(choice, 'custom_name')):
+                    return name
+                else:
+                    index = choice.get('index')
+                    return choices[int(index)].get('name')
                 return result
         raise LoncapaProblemError('preshuffle_name without match - should not happen')
 
@@ -289,8 +294,11 @@ class LoncapaResponse(object):
         choices = list(choicegroups[0].getchildren())
         result = []
         for choice in choices:
-            index = int(choice.get("index"))
-            result.append(choices[index].get("name"))
+            if (hasattr(choice, 'custom_name')):
+                result.append(choice.get('name'))
+            else:
+                index = choice.get('index')
+                result.append(choices[int(index)].get('name'))
         return result
 
     def render_html(self, renderer, response_msg=''):
