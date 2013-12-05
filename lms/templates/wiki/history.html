@@ -10,6 +10,8 @@
 <script type="text/javascript" src="{{ STATIC_URL }}wiki/js/diffview.js"></script>
 <script type="text/javascript">
 
+    var initialFocus = false;
+
     $(document).ready(function() {
         $('.accordion input[disabled!="disabled"][type="radio"]').first().attr('checked', 'true');
 
@@ -55,6 +57,8 @@
             $("#mergeModal .close-modal").click();
             e.preventDefault();
         });
+
+
     });
 </script>
 {% endaddtoblock %}
@@ -72,21 +76,21 @@
   tr.equal td {
     background-color: #F2F2F2;
   }
-  
+
   .diff-container td {
     white-space: pre; font-family: monospace;
   }
   .diff-container td,
   .diff-container th {
     padding: 2px 7px;
-    border-right: 1px solid #DDD;    
+    border-right: 1px solid #DDD;
   }
   .diff-container td:last-child,
   .diff-container th:last-child {
     border-right: none;
   }
   .diff-container table {
-    border-top: 1px solid #DDD;    
+    border-top: 1px solid #DDD;
   }
 </style>
 {% endaddtoblock %}
@@ -201,14 +205,14 @@
   <input type="hidden" name="r" value="" />
   <section id="previewRevisionModal" class="modal" aria-hidden="true">
     <div class="inner-wrapper" role="dialog" aria-labelledby="preview-title">
-      <button class="close-modal">&#10005; <span class="sr">{% trans 'Close Modal' %}</span></button>
+      <button class="close-modal" id="close-previewModal" onclick="initialFocus=false">&#10005; <span class="sr">{% trans 'Close Modal' %}</span></button>
 
       <header>
         <h2 id="preview-title">{% trans "Wiki Revision Preview" %}<span class="sr">, {% trans "modal open" %}</span></h2>
         <hr/>
       </header>
       <div class="modal-body">
-        <iframe name="previewWindow"></iframe>
+        <iframe name="previewWindow" onfocus="if (initialFocus == false) { $('#close-previewModal').focus(); initialFocus = true; }"></iframe>
       </div>
       <div class="modal-footer">
       <a id="previewRevisionModalBackToHistory" href="#" class="btn btn-large" data-dismiss="modal">
@@ -232,7 +236,7 @@
 
   <section id="mergeModal" class="modal" aria-hidden="true">
     <div class="inner-wrapper" role="dialog" aria-labelledby="merge-title">
-      <button class="close-modal">&#10005; <span class="sr">{% trans 'Close Modal' %}</span></button>
+      <button class="close-modal" id="close-mergeModal" onclick="initialFocus=false">&#10005; <span class="sr">{% trans 'Close Modal' %}</span></button>
 
       <header>
         <h2 id="merge-title">{% trans "Merge Revision" %}<span class="sr">, {% trans "modal open" %}</span></h2>
@@ -243,7 +247,7 @@
         <p class="lead"><span class="icon-info-sign"></span> {% trans "When you merge a revision with the current, all data will be retained from both versions and merged at its approximate location from each revision." %} <strong>{% trans "After this, it's important to do a manual review." %}</strong></p>
       </div>
       <div class="modal-body">
-        <iframe name="mergeWindow"></iframe>
+        <iframe name="mergeWindow" onfocus="if (initialFocus == false) { $('#close-mergeModal').focus(); initialFocus = true; }"/>></iframe>
       </div>
       <div class="modal-footer">
         <a id="mergeModalBackToHistory" href="#" class="btn btn-large" data-dismiss="modal">
