@@ -170,10 +170,15 @@ def run_main_task(entry_id, task_fcn, action_name):
           'duration_ms': how long the task has (or had) been running.
 
     """
-
     # get the InstructorTask to be updated.  If this fails, then let the exception return to Celery.
     # There's no point in catching it here.
     entry = InstructorTask.objects.get(pk=entry_id)
+
+    ## sarina
+    # Mark the task as in progress and save it
+#    entry.task_state = PROGRESS
+#    entry.save_now()
+    ## sarina
 
     # get inputs to use in this task from the entry:
     task_id = entry.task_id
@@ -281,14 +286,15 @@ def perform_module_state_update(update_fcn, filter_fcn, _entry_id, course_id, ta
     def get_task_progress():
         """Return a dict containing info about current task"""
         current_time = time()
-        progress = {'action_name': action_name,
-                    'attempted': num_attempted,
-                    'succeeded': num_succeeded,
-                    'skipped': num_skipped,
-                    'failed': num_failed,
-                    'total': num_total,
-                    'duration_ms': int((current_time - start_time) * 1000),
-                    }
+        progress = {
+            'action_name': action_name,
+            'attempted': num_attempted,
+            'succeeded': num_succeeded,
+            'skipped': num_skipped,
+            'failed': num_failed,
+            'total': num_total,
+            'duration_ms': int((current_time - start_time) * 1000),
+        }
         return progress
 
     task_progress = get_task_progress()
@@ -505,10 +511,16 @@ def push_grades_to_s3(_xmodule_instance_args, _entry_id, course_id, _task_input,
             'duration_ms': int((current_time - start_time).total_seconds() * 1000),
             'step': curr_step,
         }
+        log.warning("Sarina: inside push_grades.update_task_progress, updating state to PROGRESS")
         _get_current_task().update_state(state=PROGRESS, meta=progress)
 
+        ## sarina
+        entry = InstructorTask.objects.get(pk=_entry_id)
+        entry.save_now()
+        ## sarina
         return progress
 
+    update_task_progress()
     # Loop over all our students and build our CSV lists in memory
     header = None
     rows = []

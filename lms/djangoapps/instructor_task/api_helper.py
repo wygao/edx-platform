@@ -175,9 +175,13 @@ def get_updated_instructor_task(task_id):
         log.warning("query for InstructorTask status failed: task_id=(%s) not found", task_id)
         return None
 
+    # check here ## sarina
+    log.warning("Sarina: inside get_updated_instructor_task; instructor task state is %s", instructor_task.task_state)
+
     # if the task is not already known to be done, then we need to query
     # the underlying task's result object:
     if instructor_task.task_state not in READY_STATES:
+
         result = AsyncResult(task_id)
         _update_instructor_task(instructor_task, result)
 
