@@ -5,6 +5,8 @@ These are notable changes in edx-platform.  This is a rolling list of changes,
 in roughly chronological order, most recent first.  Add your entries at or near
 the top.  Include a label indicating the component affected.
 
+Blades: Make LTI module not send grade_back_url if has_score=False. BLD-561.
+
 Blades: LTI additional Python tests. LTI fix bug e-reader error when popping
 out window. BLD-465.
 
