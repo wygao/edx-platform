@@ -1,7 +1,7 @@
 define(
     [
         "backbone", "underscore", "js/models/metadata", "js/views/abstract_editor",
-        "js/views/transcripts/metadata_videolist", "jquery.maskedinput"
+        "js/views/transcripts/metadata_videolist"
     ],
 function(Backbone, _, MetadataModel, AbstractEditor, VideoList) {
     var Metadata = {};
@@ -296,6 +296,8 @@ function(Backbone, _, MetadataModel, AbstractEditor, VideoList) {
 
     Metadata.RelativeTime = AbstractEditor.extend({
 
+        defaultValue : '00:00:00',
+
         events : {
             "change input" : "updateModel",
             "keypress .setting-input" : "showClearButton"  ,
@@ -304,46 +306,85 @@ function(Backbone, _, MetadataModel, AbstractEditor, VideoList) {
 
         templateName: "metadata-string-entry",
 
-        initialize: function () {
-            AbstractEditor.prototype.initialize.apply(this);
+        getValueFromEditor : function () {
+            var $input = this.$el.find('#' + this.uniqueId);
 
-            // This list of definitions is used for creating appropriate
-            // time format mask;
-            //
-            // For example, mask 'hH:mM:sS':
-            // min value: 00:00:00
-            // max value: 23:59:59
-            //
-            // With this mask user cannot set following values:
-            // 93:23:23, 23:60:60, 77:77:77, etc.
-            var definitions = {
-                h: '[0-2]',
-                H: '[0-3]',
-                m: '[0-5]',
-                s: '[0-5]',
-                M: '[0-9]',
-                S: '[0-9]'
-            };
-
-            $.each(definitions, function(key, value) {
-                $.mask.definitions[key] = value;
-            });
-
-            this.$el
-                .find('#' + this.uniqueId)
-                .mask('hH:mM:sS', { placeholder: '0' });
+            return $input.val();
         },
 
-        getValueFromEditor : function () {
-            var $input = this.$el.find('#' + this.uniqueId),
-                value = $input.val();
+        updateModel: function () {
+            var value = this.getValueFromEditor(),
+                time = this.parseTime(value);
 
-            return value;
+            this.model.setValue(time);
+
+            // Sometimes, `parseTime` method returns the same value for
+            // the different inputs. In this case, model will not be
+            // updated (it already has the same value) and we should
+            // call `render` method manually.
+            // Examples:
+            //   value => 23:59:59; parseTime => 23:59:59
+            //   value => 44:59:59; parseTime => 23:59:59
+            if (value !== time && !this.model.hasChanged('value')) {
+                this.render();
+            }
+        },
+
+        parseTime : function (value) {
+            var pad = 0,
+                // Removes all white-spaces and splits by `:`.
+                timeList = value.replace(/\s+/g, '').split(':'),
+                timeDict = [
+                    {
+                        name: 'seconds',
+                        value: timeList.pop(),
+                        max: 59
+                    },
+                    {
+                        name: 'minutes',
+                        value: timeList.pop(),
+                        max: 59
+                    },
+                    {
+                        name: 'hours',
+                        value: timeList.pop(),
+                        max: 23
+                    }
+                ];
+
+            results = $.map(timeDict, function (data, index) {
+                // Converts `data.value` (string) to positive number.
+                var value = Math.abs(parseInt(data.value, 10)),
+                    name = data.name,
+                    max = data.max,
+                    mod = data.max + 1;
+
+                // Returns `00`, if value is not a number.
+                if (isNaN(value)) {
+                    return '00';
+                }
+
+                if (pad > 0) {
+                    value += pad;
+                }
+
+                if (name !== 'hours') {
+                    // do that just for seconds and minutes.
+                    pad = Math.floor(value/mod);
+                    value %= mod;
+                } else {
+                    value = (value > max) ? max : value;
+                }
+
+                return (String(value).length > 1) ? value: '0' + value;
+            });
+
+            return results.reverse().join(':');
         },
 
         setValueInEditor : function (value) {
             if (!value) {
-                value = '00:00:00';
+                value = this.defaultValue;
             }
 
             this.$el.find('input').val(value);

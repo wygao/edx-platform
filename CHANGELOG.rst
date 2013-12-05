@@ -5,6 +5,8 @@ These are notable changes in edx-platform.  This is a rolling list of changes,
 in roughly chronological order, most recent first.  Add your entries at or near
 the top.  Include a label indicating the component affected.
 
+Blades: Update behavior of start/end time fields. BLD-506.
+
 Blades: Add template that displays the most up-to-date features of
 drag-and-drop. BLD-479.
 
