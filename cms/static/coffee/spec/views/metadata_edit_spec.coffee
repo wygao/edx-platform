@@ -445,7 +445,7 @@ define ["js/models/metadata", "js/collections/metadata", "js/views/metadata", "c
             ]
 
             $.each cases, (index, data) ->
-              expect(view.parseTime(data.input)).toBe(data.output)
+                expect(view.parseTime(data.input)).toBe(data.output)
 
           it "can update its value in the view", ->
               assertCanUpdateView(@view, "23:59:59")
