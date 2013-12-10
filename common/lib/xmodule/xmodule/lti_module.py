@@ -298,7 +298,10 @@ class LTIModule(LTIFields, XModule):
         """
         Return URL for storing grades.
         """
-        uri = 'https://{host}{path}'.format(
+        # To test LTI on sandbox we must use http scheme.
+        scheme = 'http' if 'sandbox' in self.system.hostname else 'https'
+        uri = '{scheme}://{host}{path}'.format(
+                scheme=scheme,
                 host=self.system.hostname,
                 path=self.runtime.handler_url(self, 'grade_handler', thirdparty=True).rstrip('/?')
             )
