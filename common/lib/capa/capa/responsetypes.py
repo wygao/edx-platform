@@ -808,7 +808,6 @@ class MultipleChoiceResponse(LoncapaResponse):
             for choice in cxml
             if contextualize_text(choice.get('correct'), self.context) == "true"]
 
-    # 
     def mc_setup_response(self):
         '''
         Initialize name attributes in <choice> stanzas in the <choicegroup> in this response.
@@ -839,6 +838,8 @@ class MultipleChoiceResponse(LoncapaResponse):
                 # If using the masked name, choice_21, save the regular name
                 # to support unmasking later (for the logs).
                 if hasattr(self, "is_masked"):
+                    # Make masked names look different, e.g. choice_20
+                    # This is purely cosmetic, just to help debugging
                     mask_name = "choice_" + str(mask_ids.pop() + 20)
                     self.mask_dict[mask_name] = name
                     choice.set("name", mask_name)
