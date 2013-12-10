@@ -1,5 +1,7 @@
 """
 Mock LTI server for manual testing.
+
+Used for manual testing and testing on sandbox.
 """
 
 import threading
@@ -18,7 +20,8 @@ server.oauth_settings = {
 }
 server.server_host = server_host
 
-#flag for acceptance tests used for creating right callback_url
+# If in test mode mock lti server will make callback url using referer host.
+# Used in MockLTIRequestHandler when sending graded result.
 server.test_mode = True
 
 try:

@@ -4,7 +4,8 @@ LTI Server
 What is supported:
 ------------------
 
-1.) One Tool Consumer at the same time
+1.) This LTI Provider can service only one Tool Consumer at the same time. It is
+not possible to have this LTI multiple times on a single page in LMS.
 
 """
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
@@ -45,6 +46,8 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         '''
         Handle a GET request from the client and sends response back.
+
+        Used for checking LTI Provider started correctly.
         '''
 
         self.send_response(200, 'OK')
@@ -65,6 +68,7 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         if 'grade' in self.path and self._send_graded_result().status_code == 200:
             status_message = 'LTI consumer (edX) responded with XML content:<br>' + self.server.grade_data['TC answer']
             self.server.grade_data['callback_url'] = None
+            self._send_response(status_message, 200)
         # Respond to request with correct lti endpoint:
         elif self._is_correct_lti_request():
             self.post_dict = self._post_dict()
@@ -100,17 +104,16 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
                 'callback_url': self.post_dict.get('lis_outcome_service_url'),
                 'sourcedId': self.post_dict.get('lis_result_sourcedid')
             }
+            self._send_response(status_message, 200)
         else:
             status_message = "Invalid request URL"
+            self._send_response(status_message, 500)
 
-        self._send_head()
-        self._send_response(status_message)
-
-    def _send_head(self):
+    def _send_head(self, status_code):
         '''
         Send the response code and MIME headers
         '''
-        self.send_response(200)
+        self.send_response(status_code)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
@@ -176,7 +179,6 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
                 </imsx_POXEnvelopeRequest>
         """)
         data = payload.format(**values)
-        # temporarily changed to get for easy view in browser
         # get relative part, because host name is different in a) manual tests b) acceptance tests c) demos
         if getattr(self.server, 'test_mode', None):
             relative_url = urlparse.urlparse(self.server.grade_data['callback_url']).path
@@ -187,6 +189,8 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         headers = {'Content-Type': 'application/xml', 'X-Requested-With': 'XMLHttpRequest'}
         headers['Authorization'] = self.oauth_sign(url, data)
 
+        # We can't mock requests in unit tests, because we use them, but we need
+        # them to be mocked only for this one case.
         if getattr(self.server, 'run_inside_unittest_flag', None):
             response = mock.Mock(status_code=200, url=url, data=data, headers=headers)
             return response
@@ -199,11 +203,11 @@ class MockLTIRequestHandler(BaseHTTPRequestHandler):
         self.server.grade_data['TC answer'] = response.content
         return response
 
-    def _send_response(self, message):
+    def _send_response(self, message, status_code):
         '''
         Send message back to the client
         '''
-
+        self._send_head(status_code)
         if self.server.grade_data['callback_url']:
             response_str = """<html><head><title>TEST TITLE</title></head>
                 <body>

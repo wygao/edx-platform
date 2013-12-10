@@ -38,7 +38,8 @@ def setup_mock_lti_server():
         'lti_endpoint': 'correct_lti_endpoint'
     }
 
-    #flag for acceptance tests used for creating right callback_url
+    # Flag for acceptance tests used for creating right callback_url and sending
+    # graded result. Used in MockLTIRequestHandler.
     server.test_mode = True
 
     # Store the server instance in lettuce's world

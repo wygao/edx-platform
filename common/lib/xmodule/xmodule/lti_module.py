@@ -48,7 +48,6 @@ from webob import Response
 import mock
 from xml.sax.saxutils import escape
 
-from django.conf import settings
 from xmodule.editing_module import MetadataOnlyEditingDescriptor
 from xmodule.raw_module import EmptyDataRawDescriptor
 from xmodule.x_module import XModule, module_attr
@@ -286,7 +285,6 @@ class LTIModule(LTIFields, XModule):
         if dispatch == 'regenerate_signature':
             return json.dumps({ 'input_fields': self.get_input_fields() })
         else:
-            # return error message
             return json.dumps({ 'error': '[handle_ajax]: Unknown Command!' })
 
     def get_user_id(self):

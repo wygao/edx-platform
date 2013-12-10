@@ -272,6 +272,7 @@ class LTIModuleTest(LogicTest):
     def test_client_key_secret_not_provided(self, test):
         """
         LTI module attempts to get client key and secret provided in cms.
+
         There are key and secret but not for specific LTI.
         """
 
@@ -291,10 +292,10 @@ class LTIModuleTest(LogicTest):
     def test_bad_client_key_secret(self, test):
         """
         LTI module attempts to get client key and secret provided in cms.
+
         There are key and secret provided in wrong format.
         """
         #this adds lti passports to system
-        #provide key and secret in wrong format
         mocked_course = Mock(lti_passports = ['test_id_test_client_test_secret'])
         modulestore = Mock()
         modulestore.get_item.return_value = mocked_course
@@ -304,30 +305,28 @@ class LTIModuleTest(LogicTest):
         with self.assertRaises(LTIError):
             self.xmodule.get_client_key_secret()
 
-    @patch('xmodule.lti_module.signature.verify_hmac_sha1')
+    @patch('xmodule.lti_module.signature.verify_hmac_sha1', return_value=True)
     @patch('xmodule.lti_module.LTIModule.get_client_key_secret', return_value=('test_client_key', u'test_client_secret'))
     def test_successful_verify_oauth_body_sign(self, get_key_secret, mocked_verify):
         """
-        Successful oauth signing verify.
+        Test if OAuth signing was successful.
         """
-        mocked_verify.return_value = True
         try:
             self.xmodule.verify_oauth_body_sign(self.get_signed_mock_request())
         except LTIError:
             self.fail("verify_oauth_body_sign() raised LTIError unexpectedly!")
 
-    @patch('xmodule.lti_module.signature.verify_hmac_sha1')
+    @patch('xmodule.lti_module.signature.verify_hmac_sha1', return_value=False)
     @patch('xmodule.lti_module.LTIModule.get_client_key_secret', return_value=('test_client_key', u'test_client_secret'))
     def test_failed_verify_oauth_body_sign(self, get_key_secret, mocked_verify):
         """
         Oauth signing verify fail.
         """
-        mocked_verify.return_value = False
         with self.assertRaises(LTIError):
             req = self.get_signed_mock_request()
             self.xmodule.verify_oauth_body_sign(req)
 
-    def get_signed_mock_request(self):
+    def get_signed_grade_mock_request(self):
         """
         Example of signed request from LTI Provider.
         """
@@ -353,7 +352,7 @@ class LTIModuleTest(LogicTest):
 
     def test_good_custom_params(self):
         """
-        Custom parameters are present in right format.
+        Custom parameters are presented in right format.
         """
         self.xmodule.custom_parameters = ['test_custom_params=test_custom_param_value']
         self.xmodule.get_client_key_secret = Mock(return_value=('test_client_key', 'test_client_secret'))
@@ -366,16 +365,14 @@ class LTIModuleTest(LogicTest):
 
     def test_bad_custom_params(self):
         """
-        Custom parameters are present in wrong format.
+        Custom parameters are presented in wrong format.
         """
         bad_custom_params = ['test_custom_params: test_custom_param_value']
         self.xmodule.custom_parameters = bad_custom_params
         self.xmodule.get_client_key_secret = Mock(return_value=('test_client_key', 'test_client_secret'))
         self.xmodule.oauth_params = Mock()
-        self.assertRaises(
-            LTIError,
-            self.xmodule.get_input_fields,
-        )
+        with self.assertRaises(LTIError):
+            self.xmodule.get_input_fields()
 
     def test_handle_ajax(self):
         dispatch = 'regenerate_signature'
