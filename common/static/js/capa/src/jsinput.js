@@ -713,50 +713,70 @@
         var getStateSetter = sectAttr("data-setstate");
         // Get stored state
         var getStoredState = sectAttr("data-stored");
+        // Do we want to bypass single-origin policy?
+        var sop = sectAttr("data-sop");
+        sop = (sop === "true");
 
-        var channel = Channel.build({
+        // If sop attribute is set to false, we bypass it using JSChannel
+        var channel;
+        if (!sop) {
+            channel = Channel.build({
                 window: cWindow,
                 origin: path,
                 scope: "JSInput",
                 onReady: function() {
                 }
             });
+         }   
 
         // Put the return value of gradeFn in the hidden inputField.
         var update = function (callback) {
-            var ans;
+            var ans, state, store;
 
-            channel.call({
-                method: "getGrade",
-                params: "",
-                success: function(val) {
-                    ans = decodeURI(val.toString());
-
-                     // setstate presumes getstate, so don't getstate unless 
-                     // setstate is defined.
-                    if (getStateGetter && getStateSetter) {
-                        var state, store;
-                        channel.call({
-                            method: "getState",
-                            params: "",
-                            success: function(val) {
-                                state = decodeURI(val.toString());
-                                store = {
-                                    answer: ans,
-                                    state:  state
-                                };
-                                inputField.val(JSON.stringify(store));
-                                callback();
-                            }
-                        });
-                    } else {
-                        inputField.val(ans);
-                        callback();
-                    }
+            if (sop) {
+                ans = _deepKey(cWindow, gradeFn)();
+                // setstate presumes getstate, so don't getstate unless setstate
+                // is defined.
+                if (getStateGetter && getStateSetter) {
+                    state = unescape(_deepKey(cWindow, getStateGetter)());
+                    store = {
+                        answer: ans,
+                        state:  state
+                    };
+                    inputField.val(JSON.stringify(store));
+                } else {
+                    inputField.val(ans);
                 }
-            });
+            } else {
+                channel.call({
+                    method: "getGrade",
+                    params: "",
+                    success: function(val) {
+                        ans = decodeURI(val.toString());
 
-            return;
+                        // setstate presumes getstate, so don't getstate unless 
+                        // setstate is defined.
+                        if (getStateGetter && getStateSetter) {
+                            channel.call({
+                                method: "getState",
+                                params: "",
+                                success: function(val) {
+                                    state = decodeURI(val.toString());
+                                    store = {
+                                        answer: ans,
+                                        state:  state
+                                    };
+                                    inputField.val(JSON.stringify(store));
+                                    callback();
+                                }
+                            });
+                        } else {
+                            inputField.val(ans);
+                            callback();
+                        }
+                    }
+                });
+            }
         };
 
         /*                       Public methods                     */
@@ -800,7 +820,6 @@
                 sval = jsonVal;
             }
 
-
             // Try calling setstate every 200ms while it throws an exception,
             // up to five times; give up after that.
             // (Functions in the iframe may not be ready when we first try
@@ -809,13 +828,16 @@
             function whileloop(n) {
                 if (n < 5){
                     try {
-            
-                        channel.call({
-                            method: "setState",
-                            params: sval,
-                            success: function(v) {
-                            }
-                        });
+                        if (sop) {
+                            _deepKey(cWindow, getStateSetter)(sval);
+                        } else {
+                            channel.call({
+                                method: "setState",
+                                params: sval,
+                                success: function(v) {
+                                }
+                            });
+                        }
                     } catch (err) {
                         setTimeout(whileloop(n+1), 200);
                     }
@@ -825,9 +847,7 @@
                 }
             }
             whileloop(0);
-
         }
-
 
         return that;
     }
