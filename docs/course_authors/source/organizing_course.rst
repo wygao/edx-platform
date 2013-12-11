@@ -184,7 +184,7 @@ The Unit with the single Component is placed at the bottom of the Subsection.
 Components
 **********
 
-A component is the part of a unit that contains your actual course content. A unit can can contain one or more components
+A component is the part of a unit that contains your actual course content. A unit can can contain one or more components.
 
 A student can view the name of all components in a unit by hovering over the unit icon in the accordian at the top of the page.
 

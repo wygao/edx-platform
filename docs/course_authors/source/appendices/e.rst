@@ -916,6 +916,8 @@ Sample Problem:
   
       \newpage %
 
+.. _Chemical Equation Response:
+
 Chemical Equation Response
 ==========================
 
