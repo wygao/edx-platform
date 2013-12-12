@@ -1,6 +1,6 @@
 ---
 metadata:
-    display_name: JSInput response
+    display_name: Custom Javascript Display and Grading
     markdown: !!null
 data: |
       <problem display_name="webGLDemo">
