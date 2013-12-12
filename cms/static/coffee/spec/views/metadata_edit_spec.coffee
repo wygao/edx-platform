@@ -392,6 +392,22 @@ define ["js/models/metadata", "js/collections/metadata", "js/views/metadata", "c
 
             cases = [
               {
+                input: '80000'
+                output: '22:13:20'
+              },
+              {
+                input: '-100'
+                output: '00:01:40'
+              },
+              {
+                input: '-100:-10'
+                output: '01:40:10'
+              },
+              {
+                input: '99:99'
+                output: '01:40:39'
+              },
+              {
                 input: '2'
                 output: '00:00:02'
               },

@@ -354,26 +354,22 @@ function(Backbone, _, MetadataModel, AbstractEditor, VideoList) {
 
             results = $.map(timeDict, function (data, index) {
                 // Converts `data.value` (string) to positive number.
-                var value = Math.abs(parseInt(data.value, 10)),
+                // If `parseInt` returns NaN, 0 will be used.
+                var value = Math.abs(parseInt(data.value, 10)) || 0,
                     name = data.name,
                     max = data.max,
                     mod = data.max + 1;
-
-                // Returns `00`, if value is not a number.
-                if (isNaN(value)) {
-                    return '00';
-                }
 
                 if (pad > 0) {
                     value += pad;
                 }
 
-                if (name !== 'hours') {
+                if (name === 'hours') {
+                    value = (value > max) ? max : value;
+                } else {
                     // do that just for seconds and minutes.
                     pad = Math.floor(value/mod);
                     value %= mod;
-                } else {
-                    value = (value > max) ? max : value;
                 }
 
                 return (String(value).length > 1) ? value: '0' + value;
