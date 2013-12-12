@@ -1001,6 +1001,9 @@ INSTALLED_APPS = (
 
     # Student Identity Verification
     'verify_student',
+
+    # Student experiments
+    'experiment'
 )
 
 ######################### MARKETING SITE ###############################

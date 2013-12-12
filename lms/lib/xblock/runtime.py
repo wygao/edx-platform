@@ -6,6 +6,7 @@ import re
 
 from django.core.urlresolvers import reverse
 
+from experiment import experiment
 from xmodule.x_module import ModuleSystem
 
 
@@ -129,8 +130,19 @@ class LmsHandlerUrls(object):
         """See :method:`xblock.runtime:Runtime.handler_url`"""
         return handler_url(self.course_id, block, handler_name, suffix='', query='', thirdparty=thirdparty)
 
+class LmsExperimentSupport(object):
+    """
+    Another runtime mixin that provides support for saving student's state for
+    experiments.
+    """
+    def get_condition_for_user(self, experiment_id):
+        # TODO: why why why is this the way to get to a user?
+        #import pudb; pudb.set_trace()
+        real_user = self.get_real_user(self.anonymous_student_id)
+        return experiment.get_condition_for_user(self.course_id, experiment_id,
+                                                 real_user.id)
 
-class LmsModuleSystem(LmsHandlerUrls, ModuleSystem):  # pylint: disable=abstract-method
+class LmsModuleSystem(LmsHandlerUrls, LmsExperimentSupport, ModuleSystem):  # pylint: disable=abstract-method
     """
     ModuleSystem specialized to the LMS
     """

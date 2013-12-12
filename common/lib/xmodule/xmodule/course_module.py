@@ -157,6 +157,35 @@ class TextbookList(List):
         return json_data
 
 
+class ExperimentsList(List):
+    def from_json(self, values):
+        experiments = []
+        for id, name, description, conditions in values:
+            experiment = Experiment(id, name,
+                                    description, conditions)
+            experiments.append(experiment)
+
+        return experiments
+
+    def to_json(self, values):
+        json_data = []
+        for val in values:
+            if isinstance(val, Experiment):
+                json_data.append((val.id, val.name,
+                                  val.description,
+                                  val.conditions))
+            elif isinstance(val, tuple):
+                # TODO: figure out the contract for to_json
+                # document it somewhere
+                # and make this function do the right thing
+                json_data.append(val)
+            else:
+                continue
+        return json_data
+
+    # TODO: actually add an ExperimentsList to a course, and figure out how to
+    # configure it via xml
+
 class CourseFields(object):
     lti_passports = List(help="LTI tools passports as id:client_key:client_secret", scope=Scope.settings)
     textbooks = TextbookList(help="List of pairs of (title, url) for textbooks used in this course",
